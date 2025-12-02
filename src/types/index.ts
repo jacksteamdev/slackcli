@@ -48,6 +48,8 @@ export interface SlackChannel {
     value: string;
   };
   user?: string; // For DMs
+  unread_count_display?: number;
+  last_read?: string;
 }
 
 export interface SlackUser {

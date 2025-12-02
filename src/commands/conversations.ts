@@ -15,6 +15,7 @@ export function createConversationsCommand(): Command {
     .option('--types <types>', 'Conversation types (comma-separated: public_channel,private_channel,mpim,im)', 'public_channel,private_channel,mpim,im')
     .option('--limit <number>', 'Number of conversations to return', '100')
     .option('--exclude-archived', 'Exclude archived conversations', false)
+    .option('--unread-only', 'Only show conversations with unread messages', false)
     .option('--workspace <id|name>', 'Workspace to use (overrides default)')
     .action(async (options) => {
       const spinner = ora('Fetching conversations...').start();
@@ -28,7 +29,31 @@ export function createConversationsCommand(): Command {
           exclude_archived: options.excludeArchived,
         });
 
-        const channels: SlackChannel[] = response.channels || [];
+        let channels: SlackChannel[] = response.channels || [];
+
+        // Fetch unread counts if needed
+        if (options.unreadOnly) {
+          spinner.text = 'Fetching unread counts...';
+          const channelsWithUnreads: SlackChannel[] = [];
+
+          for (const channel of channels) {
+            try {
+              const infoResponse = await client.getConversationInfo(channel.id);
+              if (infoResponse.ok && infoResponse.channel) {
+                const channelInfo = infoResponse.channel;
+                if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
+                  channel.unread_count_display = channelInfo.unread_count_display;
+                  channel.last_read = channelInfo.last_read;
+                  channelsWithUnreads.push(channel);
+                }
+              }
+            } catch (err) {
+              // Skip channels we can't fetch info for
+            }
+          }
+
+          channels = channelsWithUnreads;
+        }
 
         // Fetch user info for DMs
         const userIds = new Set<string>();
@@ -50,6 +75,73 @@ export function createConversationsCommand(): Command {
         spinner.succeed(`Found ${channels.length} conversations`);
 
         console.log('\n' + formatChannelList(channels, users));
+      } catch (err: any) {
+        spinner.fail('Failed to fetch conversations');
+        error(err.message, 'Run "slackcli auth list" to check your authentication.');
+        process.exit(1);
+      }
+    });
+
+  // List unread conversations
+  conversations
+    .command('unread')
+    .description('List conversations with unread messages')
+    .option('--types <types>', 'Conversation types (comma-separated: public_channel,private_channel,mpim,im)', 'public_channel,private_channel,mpim,im')
+    .option('--limit <number>', 'Number of conversations to return', '100')
+    .option('--workspace <id|name>', 'Workspace to use (overrides default)')
+    .action(async (options) => {
+      const spinner = ora('Fetching conversations with unreads...').start();
+
+      try {
+        const client = await getAuthenticatedClient(options.workspace);
+
+        const response = await client.listConversations({
+          types: options.types,
+          limit: parseInt(options.limit),
+          exclude_archived: true,
+        });
+
+        const allChannels: SlackChannel[] = response.channels || [];
+        const channelsWithUnreads: SlackChannel[] = [];
+
+        spinner.text = 'Checking for unread messages...';
+
+        for (const channel of allChannels) {
+          try {
+            const infoResponse = await client.getConversationInfo(channel.id);
+            if (infoResponse.ok && infoResponse.channel) {
+              const channelInfo = infoResponse.channel;
+              if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
+                channel.unread_count_display = channelInfo.unread_count_display;
+                channel.last_read = channelInfo.last_read;
+                channelsWithUnreads.push(channel);
+              }
+            }
+          } catch (err) {
+            // Skip channels we can't fetch info for
+          }
+        }
+
+        // Fetch user info for DMs
+        const userIds = new Set<string>();
+        channelsWithUnreads.forEach(ch => {
+          if (ch.is_im && ch.user) {
+            userIds.add(ch.user);
+          }
+        });
+
+        const users = new Map<string, SlackUser>();
+        if (userIds.size > 0) {
+          spinner.text = 'Fetching user information...';
+          const usersResponse = await client.getUsersInfo(Array.from(userIds));
+          usersResponse.users?.forEach((user: SlackUser) => {
+            users.set(user.id, user);
+          });
+        }
+
+        spinner.succeed(`Found ${channelsWithUnreads.length} conversations with unread messages`);
+
+        console.log('\n' + formatChannelList(channelsWithUnreads, users));
       } catch (err: any) {
         spinner.fail('Failed to fetch conversations');
         error(err.message, 'Run "slackcli auth list" to check your authentication.');
