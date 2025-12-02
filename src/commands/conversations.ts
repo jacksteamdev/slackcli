@@ -16,6 +16,7 @@ export function createConversationsCommand(): Command {
     .option('--limit <number>', 'Number of conversations to return', '100')
     .option('--exclude-archived', 'Exclude archived conversations', false)
     .option('--unread-only', 'Only show conversations with unread messages', false)
+    .option('--show-unreads', 'Show unread count badges for all conversations', false)
     .option('--workspace <id|name>', 'Workspace to use (overrides default)')
     .action(async (options) => {
       const spinner = ora('Fetching conversations...').start();
@@ -32,27 +33,45 @@ export function createConversationsCommand(): Command {
         let channels: SlackChannel[] = response.channels || [];
 
         // Fetch unread counts if needed
-        if (options.unreadOnly) {
+        if (options.unreadOnly || options.showUnreads) {
           spinner.text = 'Fetching unread counts...';
-          const channelsWithUnreads: SlackChannel[] = [];
 
-          for (const channel of channels) {
-            try {
-              const infoResponse = await client.getConversationInfo(channel.id);
-              if (infoResponse.ok && infoResponse.channel) {
-                const channelInfo = infoResponse.channel;
-                if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
+          if (options.unreadOnly) {
+            // Filter to only channels with unreads
+            const channelsWithUnreads: SlackChannel[] = [];
+
+            for (const channel of channels) {
+              try {
+                const infoResponse = await client.getConversationInfo(channel.id);
+                if (infoResponse.ok && infoResponse.channel) {
+                  const channelInfo = infoResponse.channel;
+                  if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
+                    channel.unread_count_display = channelInfo.unread_count_display;
+                    channel.last_read = channelInfo.last_read;
+                    channelsWithUnreads.push(channel);
+                  }
+                }
+              } catch (err) {
+                // Skip channels we can't fetch info for
+              }
+            }
+
+            channels = channelsWithUnreads;
+          } else {
+            // Show all channels but populate unread counts
+            for (const channel of channels) {
+              try {
+                const infoResponse = await client.getConversationInfo(channel.id);
+                if (infoResponse.ok && infoResponse.channel) {
+                  const channelInfo = infoResponse.channel;
                   channel.unread_count_display = channelInfo.unread_count_display;
                   channel.last_read = channelInfo.last_read;
-                  channelsWithUnreads.push(channel);
                 }
+              } catch (err) {
+                // Skip channels we can't fetch info for
               }
-            } catch (err) {
-              // Skip channels we can't fetch info for
             }
           }
-
-          channels = channelsWithUnreads;
         }
 
         // Fetch user info for DMs
