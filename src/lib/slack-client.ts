@@ -33,7 +33,9 @@ export class SlackClient {
       const response = await this.webClient.apiCall(method, params);
       return response;
     } catch (error: any) {
-      throw new Error(`Slack API error: ${error.message}`);
+      // Extract Slack error code if available
+      const slackError = error.data?.error || error.code;
+      throw new Error(slackError || error.message);
     }
   }
 
@@ -70,11 +72,16 @@ export class SlackClient {
       const data: any = await response.json();
 
       if (!data.ok) {
+        // Throw just the error code for better formatting
         throw new Error(data.error || 'Unknown API error');
       }
 
       return data;
     } catch (error: any) {
+      // Pass through Slack error codes directly
+      if (error.message && !error.message.startsWith('HTTP error')) {
+        throw error;
+      }
       throw new Error(`Slack API error: ${error.message}`);
     }
   }

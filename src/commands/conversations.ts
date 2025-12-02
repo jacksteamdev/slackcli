@@ -1,8 +1,39 @@
 import { Command } from 'commander';
 import ora from 'ora';
+import chalk from 'chalk';
 import { getAuthenticatedClient } from '../lib/auth.ts';
 import { error, formatChannelList, formatConversationHistory } from '../lib/formatter.ts';
 import type { SlackChannel, SlackMessage, SlackUser } from '../types/index.ts';
+
+// Parse user-friendly date string to UNIX timestamp (seconds)
+function parseDate(dateStr: string): string {
+  // Handle relative dates: "X days/weeks/hours ago"
+  const relativeMatch = dateStr.match(/^(\d+)\s+(day|days|week|weeks|hour|hours)\s+ago$/i);
+  if (relativeMatch) {
+    const amount = parseInt(relativeMatch[1]);
+    const unit = relativeMatch[2].toLowerCase();
+    const now = Date.now();
+    let ms = 0;
+
+    if (unit.startsWith('hour')) {
+      ms = amount * 60 * 60 * 1000;
+    } else if (unit.startsWith('day')) {
+      ms = amount * 24 * 60 * 60 * 1000;
+    } else if (unit.startsWith('week')) {
+      ms = amount * 7 * 24 * 60 * 60 * 1000;
+    }
+
+    return Math.floor((now - ms) / 1000).toString();
+  }
+
+  // Handle absolute dates: "YYYY-MM-DD" or "MMM DD"
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date format: "${dateStr}". Use formats like "2 days ago", "1 week ago", or "2025-11-25"`);
+  }
+
+  return Math.floor(date.getTime() / 1000).toString();
+}
 
 export function createConversationsCommand(): Command {
   const conversations = new Command('conversations')
@@ -16,6 +47,7 @@ export function createConversationsCommand(): Command {
     .option('--limit <number>', 'Number of conversations to return', '100')
     .option('--exclude-archived', 'Exclude archived conversations', false)
     .option('--unread-only', 'Only show conversations with unread messages', false)
+    .option('--cursor <string>', 'Pagination cursor for next page of results')
     .option('--workspace <id|name>', 'Workspace to use (overrides default)')
     .action(async (options) => {
       const spinner = ora('Fetching conversations...').start();
@@ -27,6 +59,7 @@ export function createConversationsCommand(): Command {
           types: options.types,
           limit: parseInt(options.limit),
           exclude_archived: options.excludeArchived,
+          cursor: options.cursor,
         });
 
         let channels: SlackChannel[] = response.channels || [];
@@ -75,6 +108,12 @@ export function createConversationsCommand(): Command {
         spinner.succeed(`Found ${channels.length} conversations`);
 
         console.log('\n' + formatChannelList(channels, users));
+
+        // Show pagination hint if there are more results
+        if (response.response_metadata?.next_cursor) {
+          console.log('\n' + chalk.dim('To see more results:'));
+          console.log(chalk.cyan(`  slack conversations list --cursor=${response.response_metadata.next_cursor}${options.limit ? ` --limit=${options.limit}` : ''}${options.types ? ` --types=${options.types}` : ''}`));
+        }
       } catch (err: any) {
         spinner.fail('Failed to fetch conversations');
         error(err.message, 'Run "slackcli auth list" to check your authentication.');
@@ -159,6 +198,9 @@ export function createConversationsCommand(): Command {
     .option('--limit <number>', 'Number of messages to return', '100')
     .option('--oldest <timestamp>', 'Start of time range')
     .option('--latest <timestamp>', 'End of time range')
+    .option('--since <date>', 'Start date (e.g., "2 days ago", "1 week ago", "2025-11-25")')
+    .option('--until <date>', 'End date (e.g., "1 day ago", "2025-11-30")')
+    .option('--cursor <string>', 'Pagination cursor for next page of results')
     .option('--workspace <id|name>', 'Workspace to use')
     .option('--json', 'Output in JSON format (includes timestamps for replies)', false)
     .action(async (channelId, options) => {
@@ -166,6 +208,18 @@ export function createConversationsCommand(): Command {
 
       try {
         const client = await getAuthenticatedClient(options.workspace);
+
+        // Parse date filters if provided
+        let oldest = options.oldest;
+        let latest = options.latest;
+
+        if (options.since) {
+          oldest = parseDate(options.since);
+        }
+
+        if (options.until) {
+          latest = parseDate(options.until);
+        }
 
         let response: any;
         let messages: SlackMessage[];
@@ -175,8 +229,9 @@ export function createConversationsCommand(): Command {
           spinner.text = 'Fetching thread replies...';
           response = await client.getConversationReplies(channelId, options.threadTs, {
             limit: parseInt(options.limit),
-            oldest: options.oldest,
-            latest: options.latest,
+            oldest,
+            latest,
+            cursor: options.cursor,
           });
           messages = response.messages || [];
         } else {
@@ -184,8 +239,9 @@ export function createConversationsCommand(): Command {
           spinner.text = 'Fetching conversation history...';
           response = await client.getConversationHistory(channelId, {
             limit: parseInt(options.limit),
-            oldest: options.oldest,
-            latest: options.latest,
+            oldest,
+            latest,
+            cursor: options.cursor,
           });
           messages = response.messages || [];
 
@@ -238,9 +294,16 @@ export function createConversationsCommand(): Command {
               real_name: u.real_name,
               email: u.profile?.email,
             })),
+            next_cursor: response.response_metadata?.next_cursor,
           }, null, 2));
         } else {
           console.log('\n' + formatConversationHistory(channelId, messages, users));
+
+          // Show pagination hint if there are more results
+          if (response.response_metadata?.next_cursor) {
+            console.log('\n' + chalk.dim('To see more results:'));
+            console.log(chalk.cyan(`  slack conversations read ${channelId} --cursor=${response.response_metadata.next_cursor}${options.limit ? ` --limit=${options.limit}` : ''}${oldest ? ` --oldest=${oldest}` : ''}${latest ? ` --latest=${latest}` : ''}`));
+          }
         }
       } catch (err: any) {
         spinner.fail('Failed to fetch messages');
