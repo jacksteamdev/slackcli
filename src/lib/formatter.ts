@@ -101,7 +101,10 @@ export function formatChannelList(channels: SlackChannel[], users: Map<string, S
 export function formatMessage(
   msg: SlackMessage,
   users: Map<string, SlackUser>,
-  indent: number = 0
+  indent: number = 0,
+  parentMessage?: SlackMessage,
+  workspaceUrl?: string,
+  channelId?: string
 ): string {
   const indentStr = ' '.repeat(indent);
   const user = msg.user ? users.get(msg.user) : null;
@@ -109,9 +112,19 @@ export function formatMessage(
   const timestamp = formatTimestamp(msg.ts);
   const isThread = msg.thread_ts && msg.thread_ts !== msg.ts;
   const threadIndicator = isThread ? chalk.dim(' (in thread)') : '';
-  
+
   let output = `${indentStr}${chalk.dim(`[${timestamp}]`)} ${chalk.bold(`@${userName}`)}${threadIndicator}\n`;
-  
+
+  // Thread context - show parent message preview if this is a reply
+  if (isThread && parentMessage) {
+    const parentUser = parentMessage.user ? users.get(parentMessage.user) : null;
+    const parentUserName = parentUser?.real_name || parentUser?.name || parentMessage.bot_id || 'Unknown';
+    const parentPreview = parentMessage.text.length > 50
+      ? parentMessage.text.substring(0, 50) + '...'
+      : parentMessage.text;
+    output += `${indentStr}${chalk.dim('↳ Replying to @' + parentUserName + ': "' + parentPreview + '"')}\n`;
+  }
+
   // Message text
   const textLines = msg.text.split('\n');
   textLines.forEach(line => {
@@ -125,6 +138,13 @@ export function formatMessage(
       output += chalk.dim(` | thread_ts: ${msg.thread_ts}`);
     }
     output += '\n';
+  }
+
+  // Show permalink if workspace URL and channel ID are provided
+  if (workspaceUrl && channelId && msg.ts) {
+    const permalinkTs = msg.ts.replace('.', '');
+    const permalink = `${workspaceUrl}/archives/${channelId}/p${permalinkTs}`;
+    output += `${indentStr}  ${chalk.dim(permalink)}\n`;
   }
   
   // Reactions
@@ -147,17 +167,23 @@ export function formatMessage(
 export function formatConversationHistory(
   channelName: string,
   messages: SlackMessage[],
-  users: Map<string, SlackUser>
+  users: Map<string, SlackUser>,
+  parents?: Map<string, SlackMessage>,
+  workspaceUrl?: string,
+  channelId?: string
 ): string {
   let output = chalk.bold(`💬 #${channelName} (${messages.length} messages)\n\n`);
-  
+
   messages.forEach((msg, idx) => {
-    output += formatMessage(msg, users);
+    const parentMessage = msg.thread_ts && msg.thread_ts !== msg.ts && parents
+      ? parents.get(msg.thread_ts)
+      : undefined;
+    output += formatMessage(msg, users, 0, parentMessage, workspaceUrl, channelId);
     if (idx < messages.length - 1) {
       output += '\n';
     }
   });
-  
+
   return output;
 }
 
