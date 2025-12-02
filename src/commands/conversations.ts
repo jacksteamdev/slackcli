@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import ora from 'ora';
 import { getAuthenticatedClient } from '../lib/auth.ts';
+import { getWorkspace } from '../lib/workspaces.ts';
 import { error, formatChannelList, formatConversationHistory } from '../lib/formatter.ts';
 import type { SlackChannel, SlackMessage, SlackUser } from '../types/index.ts';
 
@@ -234,6 +235,29 @@ export function createConversationsCommand(): Command {
           });
         }
 
+        // Build parent message map for thread context
+        const parents = new Map<string, SlackMessage>();
+        messages.forEach(msg => {
+          if (msg.thread_ts === msg.ts) {
+            parents.set(msg.ts, msg);
+          }
+        });
+
+        // Get workspace URL for permalinks
+        const workspace = await getWorkspace(options.workspace);
+        let workspaceUrl: string | undefined;
+        if (workspace) {
+          if (workspace.auth_type === 'browser') {
+            workspaceUrl = workspace.workspace_url;
+          } else {
+            // For standard auth, construct URL from team info
+            const authTest = await client.testAuth();
+            if (authTest.url) {
+              workspaceUrl = authTest.url;
+            }
+          }
+        }
+
         spinner.succeed(`Found ${messages.length} messages`);
 
         // Output in JSON format if requested
@@ -259,7 +283,7 @@ export function createConversationsCommand(): Command {
             })),
           }, null, 2));
         } else {
-          console.log('\n' + formatConversationHistory(channelId, messages, users));
+          console.log('\n' + formatConversationHistory(channelId, messages, users, parents, workspaceUrl, channelId));
         }
       } catch (err: any) {
         spinner.fail('Failed to fetch messages');
