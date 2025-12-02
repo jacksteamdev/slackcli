@@ -172,3 +172,48 @@ export function warning(message: string): void {
   console.log(chalk.yellow('⚠️'), message);
 }
 
+// Format search results
+export function formatSearchResults(
+  searchResults: any,
+  users: Map<string, SlackUser>
+): string {
+  const matches = searchResults.messages?.matches || [];
+  const total = searchResults.messages?.total || 0;
+
+  if (matches.length === 0) {
+    return chalk.yellow('No results found');
+  }
+
+  let output = chalk.bold(`🔍 Search Results (${matches.length} of ${total} total)\n\n`);
+
+  matches.forEach((match: any, idx: number) => {
+    const user = match.user ? users.get(match.user) : null;
+    const userName = user?.real_name || user?.name || match.username || 'Unknown';
+    const timestamp = formatTimestamp(match.ts);
+    const channelName = match.channel?.name || match.channel?.id || 'Unknown Channel';
+    const channelType = match.channel?.is_private ? '🔒' : '#';
+
+    output += chalk.dim(`[${idx + 1}] ${timestamp} | ${channelType}${channelName}\n`);
+    output += `${chalk.bold(`@${userName}`)}\n`;
+
+    // Message text
+    const textLines = match.text.split('\n');
+    textLines.forEach((line: string) => {
+      output += `  ${line}\n`;
+    });
+
+    // Metadata
+    output += chalk.dim(`  ts: ${match.ts}`);
+    if (match.permalink) {
+      output += chalk.dim(` | ${match.permalink}`);
+    }
+    output += '\n';
+
+    if (idx < matches.length - 1) {
+      output += '\n';
+    }
+  });
+
+  return output;
+}
+

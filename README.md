@@ -7,6 +7,7 @@ A fast, developer-friendly command-line interface tool for interacting with Slac
 - 🔐 **Dual Authentication Support**: Standard Slack tokens (xoxb/xoxp) or browser tokens (xoxd/xoxc)
 - 🏢 **Multi-Workspace Management**: Manage multiple Slack workspaces with ease
 - 💬 **Conversation Management**: List channels, read messages, send messages
+- 🔍 **Message Search**: Search messages across your workspace with filters
 - 🚀 **Fast & Lightweight**: Built with Bun for blazing fast performance
 - 🔄 **Auto-Update**: Built-in self-update mechanism
 - 🎨 **Beautiful Output**: Colorful, user-friendly terminal output
@@ -145,6 +146,25 @@ slackcli messages send --recipient-id=U9876543210 --message="Hey there!"
 
 # Reply to a thread
 slackcli messages send --recipient-id=C1234567890 --thread-ts=1234567890.123456 --message="Great idea!"
+```
+
+### Search Commands
+
+```bash
+# Search for messages
+slackcli search messages --query="project deadline"
+
+# Search with custom result count (max 100)
+slackcli search messages --query="bug fix" --count=50
+
+# Sort results by timestamp instead of relevance
+slackcli search messages --query="meeting notes" --sort=timestamp
+
+# Search within a specific channel
+slackcli search messages --query="deployment" --channel=C1234567890
+
+# Combine options
+slackcli search messages --query="feature request" --count=30 --sort=timestamp --channel=C1234567890
 ```
 
 ### Update Commands
