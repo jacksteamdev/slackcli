@@ -1,15 +1,18 @@
-# SlackCLI
+# SlackCLI (Read-Only Fork)
 
 A fast, developer-friendly command-line interface tool for interacting with Slack workspaces. Built with TypeScript and Bun, it enables AI agents, automation tools, and developers to access Slack functionality directly from the terminal.
+
+**⚠️ This is a read-only fork with all message sending capabilities removed for security purposes.**
 
 ## Features
 
 - 🔐 **Dual Authentication Support**: Standard Slack tokens (xoxb/xoxp) or browser tokens (xoxd/xoxc)
 - 🏢 **Multi-Workspace Management**: Manage multiple Slack workspaces with ease
-- 💬 **Conversation Management**: List channels, read messages, send messages
+- 💬 **Conversation Management**: List channels, read messages (sending disabled)
 - 🚀 **Fast & Lightweight**: Built with Bun for blazing fast performance
 - 🔄 **Auto-Update**: Built-in self-update mechanism
 - 🎨 **Beautiful Output**: Colorful, user-friendly terminal output
+- 🔒 **Read-Only**: No message sending capabilities for enhanced security
 
 ## Installation
 
@@ -134,19 +137,6 @@ slackcli conversations read C1234567890 --limit=50
 slackcli conversations read C1234567890 --json
 ```
 
-### Message Commands
-
-```bash
-# Send message to a channel
-slackcli messages send --recipient-id=C1234567890 --message="Hello team!"
-
-# Send DM to a user
-slackcli messages send --recipient-id=U9876543210 --message="Hey there!"
-
-# Reply to a thread
-slackcli messages send --recipient-id=C1234567890 --thread-ts=1234567890.123456 --message="Great idea!"
-```
-
 ### Update Commands
 
 ```bash
@@ -209,7 +199,6 @@ slackcli/
 │   ├── commands/             # Command implementations
 │   │   ├── auth.ts
 │   │   ├── conversations.ts
-│   │   ├── messages.ts
 │   │   └── update.ts
 │   ├── lib/                  # Core library
 │   │   ├── auth.ts
@@ -248,7 +237,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Permission Errors
 
-If you get permission errors when accessing conversations or sending messages:
+If you get permission errors when accessing conversations:
 - Verify your bot/user has been added to the channel
 - Check OAuth scopes include required permissions
 - For browser tokens, ensure you have access in the web UI
