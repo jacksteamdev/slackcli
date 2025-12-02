@@ -192,11 +192,65 @@ export function success(message: string): void {
   console.log(chalk.green('✅'), message);
 }
 
+// Format Slack API error codes into helpful messages
+export function formatSlackError(errorCode: string): { message: string; hint?: string } {
+  const errorMap: Record<string, { message: string; hint?: string }> = {
+    'invalid_auth': {
+      message: 'Your session has expired or authentication is invalid.',
+      hint: 'Re-authenticate with:\n  slack auth login-browser'
+    },
+    'not_in_channel': {
+      message: "You're not a member of this channel.",
+      hint: 'Join the channel first in Slack, then try again.'
+    },
+    'channel_not_found': {
+      message: 'Channel not found.',
+      hint: 'Verify the channel ID with: slack conversations list'
+    },
+    'ratelimited': {
+      message: 'Rate limited by Slack.',
+      hint: 'Wait 60 seconds and try again.'
+    },
+    'missing_scope': {
+      message: 'Missing required permissions.',
+      hint: 'Check your authentication scopes and re-authenticate if needed.'
+    },
+    'token_revoked': {
+      message: 'Your authentication token has been revoked.',
+      hint: 'Re-authenticate with: slack auth login-browser'
+    },
+    'account_inactive': {
+      message: 'Your Slack account is inactive.',
+      hint: 'Contact your workspace administrator.'
+    },
+    'invalid_cursor': {
+      message: 'Invalid pagination cursor.',
+      hint: 'The cursor may have expired. Start a new query without --cursor.'
+    },
+    'no_permission': {
+      message: "You don't have permission to access this resource.",
+      hint: 'Contact your workspace administrator for access.'
+    }
+  };
+
+  return errorMap[errorCode] || { message: errorCode };
+}
+
 // Error message
 export function error(message: string, hint?: string): void {
-  console.error(chalk.red('❌ Error:'), message);
-  if (hint) {
-    console.error(chalk.dim(`   ${hint}`));
+  // Check if message looks like a Slack error code
+  const slackErrorMatch = message.match(/^([a-z_]+)$/);
+  if (slackErrorMatch) {
+    const formatted = formatSlackError(slackErrorMatch[1]);
+    console.error(chalk.red('❌ Error:'), formatted.message);
+    if (formatted.hint) {
+      console.error(chalk.dim(`   ${formatted.hint}`));
+    }
+  } else {
+    console.error(chalk.red('❌ Error:'), message);
+    if (hint) {
+      console.error(chalk.dim(`   ${hint}`));
+    }
   }
 }
 
