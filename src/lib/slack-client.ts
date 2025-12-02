@@ -51,16 +51,14 @@ export class SlackClient {
     });
 
     try {
-      // URL-encode the xoxd token for the cookie
-      const encodedXoxdToken = encodeURIComponent(this.config.xoxd_token);
-      
+      // Do NOT URL-encode the xoxd token - use raw value
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Cookie': `d=${encodedXoxdToken}`,
+          'Cookie': `d=${this.config.xoxd_token}`,
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Origin': 'https://app.slack.com',
-          'User-Agent': 'Mozilla/5.0 (compatible; SlackCLI/0.1.0)',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
         },
         body: formBody,
       });
