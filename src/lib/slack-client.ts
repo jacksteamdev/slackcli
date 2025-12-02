@@ -133,16 +133,6 @@ export class SlackClient {
     return this.request('conversations.replies', params);
   }
 
-  // Post message
-  async postMessage(channel: string, text: string, options: {
-    thread_ts?: string;
-  } = {}): Promise<any> {
-    const params: Record<string, any> = { channel, text };
-    if (options.thread_ts) params.thread_ts = options.thread_ts;
-    
-    return this.request('chat.postMessage', params);
-  }
-
   // Get user info
   async getUserInfo(userId: string): Promise<any> {
     return this.request('users.info', { user: userId });
@@ -151,7 +141,7 @@ export class SlackClient {
   // Get multiple users info
   async getUsersInfo(userIds: string[]): Promise<any> {
     const users: any[] = [];
-    
+
     for (const userId of userIds) {
       try {
         const response = await this.getUserInfo(userId);
@@ -163,13 +153,8 @@ export class SlackClient {
         console.error(`Failed to fetch user ${userId}`);
       }
     }
-    
-    return { ok: true, users };
-  }
 
-  // Open a conversation (DM)
-  async openConversation(users: string): Promise<any> {
-    return this.request('conversations.open', { users });
+    return { ok: true, users };
   }
 }
 
