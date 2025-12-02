@@ -10,7 +10,11 @@ A fast, developer-friendly command-line interface tool for interacting with Slac
 - 🏢 **Multi-Workspace Management**: Manage multiple Slack workspaces with ease
 - 💬 **Conversation Management**: List channels, read messages (sending disabled)
 - 🔍 **Message Search**: Search messages across your workspace with filters
-- 📬 **Unread Tracking**: Track and filter conversations with unread messages
+- 📬 **Unread Tracking**: Track and filter conversations with unread messages (with optional badge display)
+- 🔗 **Message Permalinks**: Direct links to open messages in Slack
+- 📅 **Date Filters**: User-friendly date filtering ("2 days ago", "Nov 25")
+- 📄 **Pagination**: Navigate large result sets with cursor support
+- ⚠️ **Smart Error Messages**: Helpful error messages with action steps
 - 🚀 **Fast & Lightweight**: Built with Bun for blazing fast performance
 - 🎨 **Beautiful Output**: Colorful, user-friendly terminal output
 - 🔒 **Read-Only**: No message sending capabilities for enhanced security
@@ -125,8 +129,20 @@ slackcli conversations list --types=public_channel
 # List DMs
 slackcli conversations list --types=im
 
+# Show unread count badges
+slackcli conversations list --show-unreads
+
+# Pagination with cursor
+slackcli conversations list --cursor=dGVhbTpDMDYxRkE1UEI=
+
 # Read recent messages from a channel
 slackcli conversations read C1234567890
+
+# Read messages from last 2 days
+slackcli conversations read C1234567890 --since "2 days ago"
+
+# Read messages from specific date range
+slackcli conversations read C1234567890 --since "2025-11-25" --until "2025-11-30"
 
 # Read a specific thread
 slackcli conversations read C1234567890 --thread-ts=1234567890.123456
