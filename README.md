@@ -9,8 +9,9 @@ A fast, developer-friendly command-line interface tool for interacting with Slac
 - 🔐 **Dual Authentication Support**: Standard Slack tokens (xoxb/xoxp) or browser tokens (xoxd/xoxc)
 - 🏢 **Multi-Workspace Management**: Manage multiple Slack workspaces with ease
 - 💬 **Conversation Management**: List channels, read messages (sending disabled)
+- 🔍 **Message Search**: Search messages across your workspace with filters
+- 📬 **Unread Tracking**: Track and filter conversations with unread messages
 - 🚀 **Fast & Lightweight**: Built with Bun for blazing fast performance
-- 🔄 **Auto-Update**: Built-in self-update mechanism
 - 🎨 **Beautiful Output**: Colorful, user-friendly terminal output
 - 🔒 **Read-Only**: No message sending capabilities for enhanced security
 
@@ -137,14 +138,23 @@ slackcli conversations read C1234567890 --limit=50
 slackcli conversations read C1234567890 --json
 ```
 
-### Update Commands
+### Search Commands
 
 ```bash
-# Check for updates
-slackcli update check
+# Search for messages
+slackcli search messages --query="project deadline"
 
-# Update to latest version
-slackcli update
+# Search with custom result count (max 100)
+slackcli search messages --query="bug fix" --count=50
+
+# Sort results by timestamp instead of relevance
+slackcli search messages --query="meeting notes" --sort=timestamp
+
+# Search within a specific channel
+slackcli search messages --query="deployment" --channel=C1234567890
+
+# Combine options
+slackcli search messages --query="feature request" --count=30 --sort=timestamp --channel=C1234567890
 ```
 
 ### Multi-Workspace Usage

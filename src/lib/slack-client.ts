@@ -161,5 +161,25 @@ export class SlackClient {
 
     return { ok: true, users };
   }
+
+  // Search messages
+  async searchMessages(query: string, options: {
+    sort?: string;
+    count?: number;
+    channel?: string;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = { query };
+    if (options.sort) params.sort = options.sort;
+    if (options.count) params.count = options.count;
+
+    // Add channel filter to query if specified
+    let searchQuery = query;
+    if (options.channel) {
+      searchQuery = `${query} in:<#${options.channel}>`;
+    }
+    params.query = searchQuery;
+
+    return this.request('search.messages', params);
+  }
 }
 

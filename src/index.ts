@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { createAuthCommand } from './commands/auth.ts';
 import { createConversationsCommand } from './commands/conversations.ts';
+import { createSearchCommand } from './commands/search.ts';
 import chalk from 'chalk';
 
 const program = new Command();
@@ -15,6 +16,7 @@ program
 // Add commands
 program.addCommand(createAuthCommand());
 program.addCommand(createConversationsCommand());
+program.addCommand(createSearchCommand());
 
 // Parse arguments
 program.parse(process.argv);
