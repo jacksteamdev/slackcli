@@ -51,7 +51,10 @@ export function formatChannelList(channels: SlackChannel[], users: Map<string, S
     output += chalk.cyan('\nPublic Channels:\n');
     publicChannels.forEach((ch, idx) => {
       const archived = ch.is_archived ? chalk.gray(' [archived]') : '';
-      output += `  ${idx + 1}. #${ch.name} ${chalk.dim(`(${ch.id})`)}${archived}\n`;
+      const unreadBadge = ch.unread_count_display && ch.unread_count_display > 0
+        ? chalk.bgRed.white(` ${ch.unread_count_display} `) + ' '
+        : '';
+      output += `  ${idx + 1}. #${ch.name} ${unreadBadge}${chalk.dim(`(${ch.id})`)}${archived}\n`;
       if (ch.topic?.value) {
         output += `     ${chalk.dim(ch.topic.value)}\n`;
       }
@@ -62,14 +65,20 @@ export function formatChannelList(channels: SlackChannel[], users: Map<string, S
     output += chalk.yellow('\nPrivate Channels:\n');
     privateChannels.forEach((ch, idx) => {
       const archived = ch.is_archived ? chalk.gray(' [archived]') : '';
-      output += `  ${idx + 1}. 🔒 ${ch.name} ${chalk.dim(`(${ch.id})`)}${archived}\n`;
+      const unreadBadge = ch.unread_count_display && ch.unread_count_display > 0
+        ? chalk.bgRed.white(` ${ch.unread_count_display} `) + ' '
+        : '';
+      output += `  ${idx + 1}. 🔒 ${ch.name} ${unreadBadge}${chalk.dim(`(${ch.id})`)}${archived}\n`;
     });
   }
 
   if (groupMessages.length > 0) {
     output += chalk.magenta('\nGroup Messages:\n');
     groupMessages.forEach((ch, idx) => {
-      output += `  ${idx + 1}. 👥 ${ch.name || 'Group'} ${chalk.dim(`(${ch.id})`)}\n`;
+      const unreadBadge = ch.unread_count_display && ch.unread_count_display > 0
+        ? chalk.bgRed.white(` ${ch.unread_count_display} `) + ' '
+        : '';
+      output += `  ${idx + 1}. 👥 ${ch.name || 'Group'} ${unreadBadge}${chalk.dim(`(${ch.id})`)}\n`;
     });
   }
 
@@ -78,7 +87,10 @@ export function formatChannelList(channels: SlackChannel[], users: Map<string, S
     directMessages.forEach((ch, idx) => {
       const user = ch.user ? users.get(ch.user) : null;
       const userName = user?.real_name || user?.name || 'Unknown User';
-      output += `  ${idx + 1}. 👤 @${userName} ${chalk.dim(`(${ch.id})`)}\n`;
+      const unreadBadge = ch.unread_count_display && ch.unread_count_display > 0
+        ? chalk.bgRed.white(` ${ch.unread_count_display} `) + ' '
+        : '';
+      output += `  ${idx + 1}. 👤 @${userName} ${unreadBadge}${chalk.dim(`(${ch.id})`)}\n`;
     });
   }
 

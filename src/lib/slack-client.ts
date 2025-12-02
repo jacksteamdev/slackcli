@@ -96,6 +96,11 @@ export class SlackClient {
     return this.request('conversations.list', options);
   }
 
+  // Get conversation info
+  async getConversationInfo(channel: string): Promise<any> {
+    return this.request('conversations.info', { channel });
+  }
+
   // Get conversation history
   async getConversationHistory(channel: string, options: {
     cursor?: string;
